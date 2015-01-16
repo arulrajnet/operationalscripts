@@ -45,7 +45,13 @@ class MongoTask(Task):
 
         return self.func(*args, **kwargs)
 
+
 def __list_collection__(dbname):
+    """
+    List all the mongo collections from the given database.
+    :param dbname:
+    :return:
+    """
     coll_str = run("""mongo %s --eval "printjson(db.getCollectionNames())" --quiet""" % dbname)
     if coll_str:
         collections = json.loads(coll_str)
@@ -116,7 +122,35 @@ def _list(dbname=None, mongo_host=None, mongo_user=None, mongo_password=None):
         print "No collections with in DB : %s" % DB_NAME
         return None
 
-    print collections
+    print "--"*20
+    print "%-20s" % "Collection Name"
+    print "--"*20
+    for name in collections:
+        print "%-20s" % name
+    print "--"*20
+
+
+@task(alias="count", task_class=MongoTask)
+@with_settings(hide('stdout'), warn_only=True)
+def _count(dbname=None, mongo_host=None, mongo_user=None, mongo_password=None):
+    pass
+    collections = __list_collection__(dbname)
+    if len(collections) == 0:
+        print "No collections with in DB : %s" % DB_NAME
+        return None
+
+    collections_count = list()
+
+    for name in collections:
+        no_of_docs = run("""mongo %s --eval "db.%s.count()" --quiet""" % (dbname, name))
+        collections_count.append((name, no_of_docs))
+
+    print "--"*40
+    print "%-40s %10s" % ("Collection Name", "Count")
+    print "--"*40
+    for count_tuble in collections_count:
+        print "%-40s %10d" % (count_tuble[0], int(count_tuble[1]))
+    print "--"*40
 
 
 @task(default=True, task_class=MongoTask)
