@@ -215,7 +215,19 @@ function do_install_docker() {
 }
 
 function do_install_go() {
-  echo "coming soon..."
+  echo "Installing golang.."
+  sudo apt-get install curl git make binutils bison gcc build-essential -y
+
+  bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+  source ~/.gvm/scripts/gvm
+  gvm listall
+  export CGO_ENABLED=0
+  gvm install go1.4
+  gvm use go1.4
+  go version
+  export GOROOT_BOOTSTRAP=$GOROOT
+  gvm install go1.5.1
+  gvm use go1.5.1 --default
 }
 
 function do_install_npm() {
