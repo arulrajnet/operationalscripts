@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
 if [[ -f ./setup.env ]]; then
   source ./setup.env
@@ -14,20 +14,61 @@ function do_install_java() {
     sudo apt-get update
     sudo apt-get install oracle-java8-set-default -y
 
-    echo "Installing Maven..."
-    sudo apt-get remove maven*
-    sudo apt-get purge maven maven2 maven3
-    sudo add-apt-repository ppa:andrei-pozolotin/maven3 -y
-    sudo apt-get update && sudo apt-get install maven3 -y    
-    
+    __do_install_gradle
     # http://www.eclipse.org/downloads/packages/eclipse-ide-java-ee-developers/mars2
     __do_install_eclipse
 }
 
-function __do_install_eclipse() {
+function __do_install_maven() {
+  echo "Installing Maven..."
+  sudo apt-get remove maven*
+  sudo apt-get purge maven maven2 maven3
+  sudo add-apt-repository ppa:andrei-pozolotin/maven3 -y
+  sudo apt-get update && sudo apt-get install maven3 -y
+}
 
-  eclipse_install_dir=${ECLIPSE_INSTALL_DIR:-./eclipse}
-  mkdir -p $eclipse_install_dir
+function __do_install_gradle() {
+  gradle_install_dir=${GRADLE_INSTALL_DIR:-$PWD/gradle}
+  sudo mkdir -p $gradle_install_dir
+  sudo chown -R $USER:$USER $gradle_install_dir
+
+  echo "Installing Gradle in "$gradle_install_dir
+
+  curl -ksSL https://services.gradle.org/distributions/gradle-3.5.1-bin.zip -o /tmp/gradle.zip
+  sudo unzip -d $gradle_install_dir /tmp/gradle.zip
+  OLD_PATH=$PATH
+  NEW_PATH=$PATH:$gradle_install_dir/bin
+
+  # Bash completion
+
+  # Add in PATH
+	sudo grep -F "$gradle_install_dir/bin" /etc/environment > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+    sudo sed -i.bak "s|PATH=$OLDPATH|PATH=$NEWPATH|g" /etc/environment
+    source /etc/environment
+
+    # Custom bash functions for gradle.
+    tee -a ~/.bash_functions <<EOF
+#
+# Gradle
+#
+deleteGradleCache() {
+  local id=$1
+  if [ -z "$id" ]; then
+    echo "Please provide an group or artifact id to delete"
+    return 1
+  fi
+  find ~/.gradle/caches/ -type d -name "$id" -prune -exec rm -rf "{}" \; -print
+}
+EOF
+  fi
+
+}
+
+function __do_install_eclipse() {
+  eclipse_install_dir=${ECLIPSE_INSTALL_DIR:-$PWD/eclipse}
+  #sudo mkdir -p $eclipse_install_dir
+  #sudo chown $USER:$USER $eclipse_install_dir
 
   echo "Installing eclipse in "$eclipse_install_dir
 
@@ -84,7 +125,7 @@ function do_install_git() {
 
 [diff]
   submodule = log
-  
+
 [push]
   default = simple
 EOF
@@ -148,7 +189,7 @@ tee -a ~/.git_commit_template<<EOF
 # Closes #1 and #2. note this marks the item as accepted in Sprintly
 
 # ** Fun tip **
-# Work hard, play hard!  Consider prefixing your commit messages with a relevant emoji for 
+# Work hard, play hard!  Consider prefixing your commit messages with a relevant emoji for
 # great good:
 #
 #   :art: `:art:` when improving the format/structure of the code
@@ -211,7 +252,7 @@ function do_install_docker() {
 
   echo "Installing docker compose..."
   sudo apt-get install python-pip -y
-  sudo pip install -U docker-compose  
+  sudo pip install -U docker-compose
 }
 
 function do_install_go() {
@@ -238,9 +279,9 @@ function do_install_npm() {
 
 echo "Installing Java..."
 do_install_java
-echo "Installing Git..."
+# echo "Installing Git..."
 do_install_git
-echo "Installing Docker..."
+# echo "Installing Docker..."
 do_install_docker
 do_install_go
 do_install_npm
