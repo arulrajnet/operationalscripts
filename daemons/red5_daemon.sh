@@ -41,7 +41,7 @@ function checkProcessIsRunning {
 # Returns 0 if the process with PID $1 is our Java service process.
 function checkProcessIsOurService {
     local PROCESS_ID="$1"
-    if [ "$(ps-p$PROCESS_ID--no-headers-ocomm)" != "java" ]; then
+    if [ "$(ps -p $PROCESS_ID --no-headers -o comm)" != "java" ]; then
         return 1;
     fi
     grep -q --binary -F "$PROG" /proc/$PROCESS_ID/cmdline
@@ -130,7 +130,7 @@ function status() {
 }
 
 # How its called.
-function main {
+function main() {
     RETVAL=0
     case "$1" in
         start)
@@ -152,3 +152,5 @@ function main {
     esac
     exit $RETVAL
 }
+
+main $1
